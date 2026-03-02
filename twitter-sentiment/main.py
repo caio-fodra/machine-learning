@@ -6,6 +6,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score, classification_report
 
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 df = pd.read_csv('training.1600000.processed.noemoticon.csv', encoding='latin-1', header=None)
 df = df[[0, 5]]
 df.columns = ['polarity', 'text']
@@ -89,3 +93,55 @@ print("\nSample Predictions:")
 print("BernoulliNB:", bnb.predict(sample_vec))
 print("SVM:", svm.predict(sample_vec))
 print("Logistic Regression:", logreg.predict(sample_vec))
+
+acc_bnb = accuracy_score(y_test, bnb_preds)
+acc_svm = accuracy_score(y_test, svm_preds)
+acc_log = accuracy_score(y_test, logreg_pred)
+
+models = ["BernoulliNB", "SVM", "LogReg"]
+accs = [acc_bnb, acc_svm, acc_log]
+
+plt.figure(figsize=(7, 4))
+plt.bar(models, accs)
+plt.ylim(0.70, 0.85)
+plt.title("Accuracy por modelo (1.6M tweets)")
+plt.ylabel("Accuracy")
+for i, v in enumerate(accs):
+    plt.text(i, v + 0.003, f"{v:.3f}", ha="center")
+plt.tight_layout()
+plt.show()
+
+cm = confusion_matrix(y_test, logreg_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Neg", "Pos"])
+disp.plot(values_format="d")
+plt.title("Matriz de Confusão — Logistic Regression")
+plt.tight_layout()
+plt.show()
+
+feature_names = vectorizer.get_feature_names_out()
+coefs = logreg.coef_[0]
+
+TOP_N = 20
+
+top_pos_idx = np.argsort(coefs)[-TOP_N:][::-1]
+top_neg_idx = np.argsort(coefs)[:TOP_N]
+
+top_pos_terms = feature_names[top_pos_idx]
+top_neg_terms = feature_names[top_neg_idx]
+
+top_pos_vals = coefs[top_pos_idx]
+top_neg_vals = coefs[top_neg_idx]
+
+plt.figure(figsize=(9, 6))
+plt.barh(top_pos_terms[::-1], top_pos_vals[::-1])
+plt.title(f"Top {TOP_N} termos/bigramas associados a POSITIVO (LogReg)")
+plt.xlabel("Coeficiente (quanto maior, mais positivo)")
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(9, 6))
+plt.barh(top_neg_terms[::-1], top_neg_vals[::-1])
+plt.title(f"Top {TOP_N} termos/bigramas associados a NEGATIVO (LogReg)")
+plt.xlabel("Coeficiente (quanto menor, mais negativo)")
+plt.tight_layout()
+plt.show()
